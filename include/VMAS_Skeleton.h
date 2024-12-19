@@ -3,6 +3,11 @@
 // Eigen
 #include <Eigen\Dense>
 #include <Eigen\Core>
+// BGL
+#include <boost/graph/graph_traits.hpp>
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/dijkstra_shortest_paths.hpp>
+#include <boost/graph/connected_components.hpp>
 
 #include "MeshDef.h"
 
@@ -21,12 +26,14 @@ struct Plane
 	Vector3D n;
 };
 
-struct SphereClass
+struct SphereClass 
 {
-	int id;
 	Sphere s;
 	std::vector<int> cluster;
 	float E;
+
+	SphereClass(Sphere s0, std::vector<int> cluster0, float E0) : 
+		s(s0), cluster(cluster0), E(E0) {};
 };
 
 class VMAS_Skeleton
@@ -61,13 +68,16 @@ private:
 	float ComputeRadius(const Point3D p, const Point3D q, const Vector3D n);
 	Point3D CalClosestPoint(const Point3D p);
 
+	// 获取各个类别之间的连接关系
+
+
 
 
 private:
 	Mesh input_mesh;  //输入网格
 	float lambda;
 	
-	std::vector<SphereClass> sphere_classes;  
+	std::vector<std::shared_ptr<SphereClass>> sphere_classes;  
 	int *vertices_type;
 };
 

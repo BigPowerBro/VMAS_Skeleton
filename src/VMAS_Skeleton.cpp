@@ -23,7 +23,7 @@ void VMAS_Skeleton::Init(Mesh& mesh, float lambda)
     // 初始能量
     float E_init = E_c(init_cluster, init_sphere);
     
-    this->sphere_classes.push_back({ 0,init_sphere,init_cluster,E_init });
+    this->sphere_classes.push_back(std::make_shared<SphereClass>(init_sphere,init_cluster,E_init));
 
     
     
@@ -191,14 +191,15 @@ Sphere VMAS_Skeleton::update_single_sphere(const std::vector<int>& cluster, cons
             g += 2 * lambda * sign(d) / dpq * gi;
         }
         
-        //g.normalized();
+        g.normalized();
         Eigen::Vector4f dk = -g;
         
 
         //3.4 线搜索步长 黄金分割法
+        
         float a = 0, b = 1;
         float PHI = (1 + std::sqrt(5)) / 2.0;
-        float tol = 1e-5;
+        float tol = 1e-3;
         
         float c = b - (b - a) / PHI;
         float d = a + (b - a) / PHI;
@@ -225,7 +226,10 @@ Sphere VMAS_Skeleton::update_single_sphere(const std::vector<int>& cluster, cons
         }
 
         float h = (a + b) / 2.0;
-
+        std::cout << "下降方向dk:" << dk.x() << " " << dk.y() << " " << dk.z() << std::endl;
+        std::cout << "能量E：" << E << std::endl;
+        std::cout << "球体S:" << sphere.q.x() << " " << sphere.q.y() << " " << sphere.q.z() << " " << sphere.r << std::endl;
+        //float h = 0.1;
         if (h*dk.norm() < eps) break;
         if (func_E(h) > E) break;
 
@@ -237,9 +241,7 @@ Sphere VMAS_Skeleton::update_single_sphere(const std::vector<int>& cluster, cons
         sphere.r = s.w();
         
         E = E_SQEM(cluster, sphere) + lambda * E_euclidean(cluster, sphere);
-        std::cout << "下降方向dk:" << dk.x() << " " << dk.y() << " " << dk.z() << std::endl;
-        std::cout << "能量E：" << E << std::endl;
-        std::cout << "球体S:" << sphere.q.x() << " " << sphere.q.y() << " " << sphere.q.z() << " " << sphere.r << std::endl;
+        
     }
     return sphere;
 }
@@ -250,12 +252,12 @@ Sphere VMAS_Skeleton::ShrinkingBall(const int v)
     Mesh::VertexHandle v_p_h = input_mesh.vertex_handle(v);
     Mesh::Point v_p = input_mesh.point(v_p_h);
     Mesh::Normal v_n = input_mesh.calc_normal(v_p_h);
-    Point3D p = { v_p[0],v_p[1],v_p[2] };
-    Vector3D n = { v_n[0],v_n[1],v_n[2] };
+    Point3D p = { (float)v_p[0],(float)v_p[1],(float)v_p[2] };
+    Vector3D n = { (float)v_n[0],(float)v_n[1],(float)v_n[2] };
 
     Mesh::VertexHandle v_q_h = *input_mesh.vv_iter(v_p_h);
     Mesh::Point v_q = input_mesh.point(v_q_h);
-    Point3D q = { v_q[0],v_q[1],v_q[2] };
+    Point3D q = { (float)v_q[0],(float)v_q[1],(float)v_q[2] };
 
     float r = ComputeRadius(p, q, n);
 
@@ -288,7 +290,7 @@ Point3D VMAS_Skeleton::CalClosestPoint(const Point3D p)
     for (auto v_it = input_mesh.vertices_begin(); v_it != input_mesh.vertices_end(); v_it++)
     {
          auto v_q = input_mesh.point(*v_it);
-         Point3D q_temp = { v_q[0],v_q[1],v_q[2] };
+         Point3D q_temp = { (float)v_q[0],(float)v_q[1],(float)v_q[2] };
 
          if ((p - q_temp).norm() < d)
          {
