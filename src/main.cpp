@@ -4,7 +4,8 @@
 
 int main()
 {
-	std::string filename = "D:\\study\\DIP\\pre\\obj\\bunny.obj";
+	std::string fpath = "C:/MyProgram/SDK/project/c++/dip/VMAS_Skeleton/data/";
+	std::string filename = fpath+ std::string("cube.obj");
 
 	Mesh mesh;
 	if (!OpenMesh::IO::read_mesh(mesh, filename))

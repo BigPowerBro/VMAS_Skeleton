@@ -1,3 +1,5 @@
 build/
 package/
 lib/
+data/
+CmakeLists.txt
