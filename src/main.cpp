@@ -4,8 +4,8 @@
 
 int main()
 {
-	std::string fpath = "C:/MyProgram/SDK/project/c++/dip/VMAS_Skeleton/data/";
-	std::string filename = fpath+ std::string("cube.obj");
+	std::string fpath = "../data/";
+	std::string filename = fpath+ std::string("cuboid.obj");
 
 	Mesh mesh;
 	if (!OpenMesh::IO::read_mesh(mesh, filename))

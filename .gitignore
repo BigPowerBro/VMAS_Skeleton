@@ -2,4 +2,4 @@ build/
 package/
 lib/
 data/
-CmakeLists.txt
+CMakeLists.txt
