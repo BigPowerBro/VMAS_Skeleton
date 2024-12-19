@@ -17,7 +17,7 @@ void VMAS_Skeleton::Init(Mesh& mesh, float lambda)
     }
 
     // 初始球体
-    Sphere init_sphere = { {0,0,0},0 };
+    Sphere init_sphere = { {1,0,0},0 };
     init_sphere = update_single_sphere(init_cluster, init_sphere, this->lambda, 1e-5);
 
     // 初始能量
