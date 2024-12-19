@@ -13,5 +13,5 @@ int main()
 		std::cout << "无法读取三角网格" << std::endl;
 	}
 
-	VMAS_Skeleton ske(mesh);
+	VMAS_Skeleton ske(mesh, 0.2);
 }

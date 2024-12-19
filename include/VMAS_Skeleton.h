@@ -21,14 +21,22 @@ struct Plane
 	Vector3D n;
 };
 
+struct SphereClass
+{
+	int id;
+	Sphere s;
+	std::vector<int> cluster;
+	float E;
+};
+
 class VMAS_Skeleton
 {
 public:
-	VMAS_Skeleton(Mesh& mesh) { Init(mesh); };
+	VMAS_Skeleton(Mesh& mesh, float lambda) { Init(mesh, lambda); };
 	~VMAS_Skeleton() {};
 
 public:
-	void Init(Mesh& mesh);
+	void Init(Mesh& mesh,float lambda);
 private:
 	// 距离函数
 	float dps(Point3D p, Sphere s);
@@ -39,6 +47,7 @@ private:
 	float sign(float a);
 
 	// 能量计算
+	float E_c(const std::vector<int> cluster, const Sphere sphere);
 	float E_SQEM(const std::vector<int> cluster, const Sphere sphere);
 	float E_euclidean(const std::vector<int> cluster, const Sphere sphere);
 
@@ -47,9 +56,18 @@ private:
 	// 给定一族点 计算对应球体
 	Sphere update_single_sphere(const std::vector<int>& cluster, const Sphere init_sphere, float lambda, const float eps);
 
+	// 收缩球算法 
+	Sphere ShrinkingBall(const int v);
+	float ComputeRadius(const Point3D p, const Point3D q, const Vector3D n);
+	Point3D CalClosestPoint(const Point3D p);
+
+
+
 private:
 	Mesh input_mesh;  //输入网格
-	std::vector<Sphere> sphere_list; //存放所有 sphere
-	std::vector<std::vector<int>> clusters; //所有类别，每个类别的所有顶点
+	float lambda;
+	
+	std::vector<SphereClass> sphere_classes;  
+	int *vertices_type;
 };
 
