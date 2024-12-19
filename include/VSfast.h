@@ -3,6 +3,8 @@
 #include<Eigen/dense>
 #include<vector>
 #include <MeshDef.h>
+#include<iostream>
+#include<map>
 struct Sphere
 {
 	Eigen::Vector4d s;//ÇòÐÄ+°ë¾¶
