@@ -1,17 +1,31 @@
 #pragma once
 #include "VMAS_Skeleton.h"
 
-void VMAS_Skeleton::Init(Mesh& mesh)
+void VMAS_Skeleton::Init(Mesh& mesh, float lambda)
 {
     input_mesh = mesh;
+    this->lambda = lambda;
 
     //所有顶点聚为一类
     std::vector<int> init_cluster;
-    for (int i = 0; i < input_mesh.n_vertices(); i++) init_cluster.push_back(i);
+    int n_vertices = input_mesh.n_vertices();
+    this->vertices_type = new int[n_vertices];
+    for (int i = 0; i < n_vertices; i++)
+    {
+        init_cluster.push_back(i);
+        vertices_type[i] = 0;
+    }
 
     // 初始球体
     Sphere init_sphere = { {0,0,0},0 };
-    init_sphere = update_single_sphere(init_cluster, init_sphere, 0.2, 1e-5);
+    init_sphere = update_single_sphere(init_cluster, init_sphere, this->lambda, 1e-5);
+
+    // 初始能量
+    float E_init = E_c(init_cluster, init_sphere);
+    
+    this->sphere_classes.push_back({ 0,init_sphere,init_cluster,E_init });
+
+    
     
 }
 
@@ -80,6 +94,11 @@ float VMAS_Skeleton::sign(float a)
     return a >= 0 ? 1 : -1;
 }
 
+float VMAS_Skeleton::E_c(const std::vector<int> cluster, const Sphere sphere)
+{
+    return E_SQEM(cluster, sphere) + lambda * E_euclidean(cluster, sphere);
+}
+
 float VMAS_Skeleton::E_SQEM(const std::vector<int> cluster, const Sphere sphere)
 {
     float E = 0;
@@ -96,7 +115,7 @@ float VMAS_Skeleton::E_euclidean(const std::vector<int> cluster, const Sphere sp
 
 void VMAS_Skeleton::update_sphere()
 {
-    assert(sphere_list.size() == clusters.size()); //保证球个数和类别个数一致
+   
 }
 
 Sphere VMAS_Skeleton::update_single_sphere(const std::vector<int>& cluster, const Sphere init_sphere, float lambda, const float eps)
@@ -223,4 +242,59 @@ Sphere VMAS_Skeleton::update_single_sphere(const std::vector<int>& cluster, cons
         std::cout << "球体S:" << sphere.q.x() << " " << sphere.q.y() << " " << sphere.q.z() << " " << sphere.r << std::endl;
     }
     return sphere;
+}
+
+Sphere VMAS_Skeleton::ShrinkingBall(const int v)
+{
+    // 1. 初始化
+    Mesh::VertexHandle v_p_h = input_mesh.vertex_handle(v);
+    Mesh::Point v_p = input_mesh.point(v_p_h);
+    Mesh::Normal v_n = input_mesh.calc_normal(v_p_h);
+    Point3D p = { v_p[0],v_p[1],v_p[2] };
+    Vector3D n = { v_n[0],v_n[1],v_n[2] };
+
+    Mesh::VertexHandle v_q_h = *input_mesh.vv_iter(v_p_h);
+    Mesh::Point v_q = input_mesh.point(v_q_h);
+    Point3D q = { v_q[0],v_q[1],v_q[2] };
+
+    float r = ComputeRadius(p, q, n);
+
+    // 2. 迭代
+    float r_new = 0.0;
+    Point3D c;
+    float tol = 1e-8;
+    while (abs(r - r_new) > tol)
+    {
+        c = p - r * n;
+        q = CalClosestPoint(c);
+        r_new = ComputeRadius(p, q, n);
+    }
+
+    Sphere sphere = { c,r };
+    return sphere;
+}
+
+float VMAS_Skeleton::ComputeRadius(const Point3D p, const Point3D q, const Vector3D n)
+{
+    float d = (p - q).norm();
+    float theta = std::acos(n.dot(p - q) / d);
+    return d / std::cos(theta) / 2.0;
+}
+
+Point3D VMAS_Skeleton::CalClosestPoint(const Point3D p)
+{
+    float d = LLONG_MAX;
+    Point3D q;
+    for (auto v_it = input_mesh.vertices_begin(); v_it != input_mesh.vertices_end(); v_it++)
+    {
+         auto v_q = input_mesh.point(*v_it);
+         Point3D q_temp = { v_q[0],v_q[1],v_q[2] };
+
+         if ((p - q_temp).norm() < d)
+         {
+             d = (p - q_temp).norm();
+             q = q_temp;
+         }
+    }
+    return q;
 }
