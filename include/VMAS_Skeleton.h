@@ -3,11 +3,6 @@
 // Eigen
 #include <Eigen\Dense>
 #include <Eigen\Core>
-// BGL
-#include <boost/graph/graph_traits.hpp>
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/dijkstra_shortest_paths.hpp>
-#include <boost/graph/connected_components.hpp>
 
 #include "MeshDef.h"
 

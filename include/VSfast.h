@@ -27,6 +27,10 @@ public:
 	void cal_spheres_adjacency();//计算球的邻接关系
 
 private:
+	double E_SQEM(const std::vector<int>& cluster, const Eigen::Vector4d s);
+	double E_euclidean(const std::vector<int>& cluster, const Eigen::Vector4d s);
+
+private:
 	Mesh mesh;
 	Eigen::MatrixXd point_pos; // n*3的向量
 	Eigen::MatrixXd point_n;//n*4的法向量,w=1
@@ -35,6 +39,11 @@ private:
 	Eigen::MatrixXi spheres_adjacency;//球的邻接关系
 	double lambda;//系数
 	double threshold;//能量阈值
+
+private:
+	// 在计算E_SQEM时所需要用到的A b
+	Eigen::Matrix4d A;  
+	Eigen::Vector4d b;
 };
 
 
