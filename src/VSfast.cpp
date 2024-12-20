@@ -1,4 +1,81 @@
 #include<VSfast.h>
+#include <cmath>
+// 创建球体网格
+void generateSphere(const Eigen::Vector4d& sphere, std::vector<Eigen::Vector3d>& vertices, std::vector<std::vector<int>>& faces, int latitudeCount = 20, int longitudeCount = 20) {
+	double R = sphere[3];  // 半径
+	Eigen::Vector3d center(sphere[0], sphere[1], sphere[2]);  // 球心
+	int vertexCount = 0;
+
+	for (int i = 0; i <= latitudeCount; ++i) {
+		double theta = M_PI * i / latitudeCount;  // 纬度角
+		for (int j = 0; j <= longitudeCount; ++j) {
+			double phi = 2 * M_PI * j / longitudeCount;  // 经度角
+
+			// 球面上的点
+			double x = R * sin(theta) * cos(phi) + center[0];
+			double y = R * sin(theta) * sin(phi) + center[1];
+			double z = R * cos(theta) + center[2];
+
+			vertices.push_back(Eigen::Vector3d(x, y, z));
+			++vertexCount;
+
+			// 创建面（三角形面片）
+			if (i < latitudeCount && j < longitudeCount) {
+				int current = i * (longitudeCount + 1) + j;
+				int next = (i + 1) * (longitudeCount + 1) + j;
+				int nextLong = (i + 1) * (longitudeCount + 1) + (j + 1) % (longitudeCount + 1);
+				int currentLong = i * (longitudeCount + 1) + (j + 1) % (longitudeCount + 1);
+
+				// 第一个三角形
+				faces.push_back({ current, next, nextLong });
+				// 第二个三角形
+				faces.push_back({ current, nextLong, currentLong });
+			}
+		}
+	}
+}
+
+// 保存到 .obj 文件
+void saveToObj(const std::vector<Eigen::Vector4d>& spheres, const std::string& filename) {
+	std::ofstream file(filename);
+
+	if (!file.is_open()) {
+		std::cerr << "无法打开文件 " << filename << std::endl;
+		return;
+	}
+
+	int vertexOffset = 0;
+	int faceOffset = 0;
+
+	// 为每个球体生成网格
+	for (size_t i = 0; i < spheres.size(); ++i) {
+		// 写入新的物体
+		file << "o Sphere" << i + 1 << std::endl;
+
+		// 为每个球体生成顶点和面
+		std::vector<Eigen::Vector3d> vertices;
+		std::vector<std::vector<int>> faces;
+		generateSphere(spheres[i], vertices, faces);
+
+		// 写入顶点
+		for (const auto& vertex : vertices) {
+			file << "v " << vertex[0] << " " << vertex[1] << " " << vertex[2] << std::endl;
+		}
+
+		// 写入面
+		for (const auto& face : faces) {
+			file << "f " << face[0] + 1 + vertexOffset << " " << face[1] + 1 + vertexOffset << " " << face[2] + 1 + vertexOffset << std::endl;
+		}
+
+		// 更新偏移量
+		vertexOffset += vertices.size();
+		faceOffset += faces.size();
+	}
+
+	file.close();
+	std::cout << "保存到 " << filename << " 完成。" << std::endl;
+}
+
 
 void VSfast::init(Mesh mesh, double lambda, int max_sphere_num)
 {
@@ -454,13 +531,16 @@ void VSfast::write_color_obj(std::string fname)
 	outply << "property int vertex1 " << std::endl;
 	outply << "property int vertex2 " << std::endl;
 	outply << "end_header " << std::endl;
-
+	std::vector<Eigen::Vector4d> spheres_s;
 	for (int i = 0; i < v_size; i++)
 	{
 		outply << spheres[i]->s[0] << " " << spheres[i]->s[1] << " " << spheres[i]->s[2] << std::endl;
+		spheres_s.push_back(spheres[i]->s);
 	}
 	for (int i = 0; i < edges.size(); i++)
 	{
 		outply <<edges[i].first << " " << edges[i].second << std::endl;
 	}
+
+	saveToObj(spheres_s, fname + "shpere.obj");
 }
