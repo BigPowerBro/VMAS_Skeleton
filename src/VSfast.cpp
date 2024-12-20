@@ -82,11 +82,42 @@ void VSfast::updata_spheres_cluster()
 void VSfast::split_spheres()
 {
 	int n = spheres.size();
+	cal_spheres_adjacency();
+	std::set<int> deleted_sphere_i;
 	for (int i = 0; i < n; i++)
 	{
 		if (spheres[i]->E > threshold2)
 		{
+			if (deleted_sphere_i.find(i) != deleted_sphere_i.end())
+			{
+				int max_id = spheres[i]->cluster[0];
+				double max_e = 0;
+				for (auto v : spheres[i]->cluster)
+				{
+					double energy=Dvs(v, spheres[i]->s) + Qvs(v, spheres[i]->s);
+					if (max_e < energy)
+					{
+						max_id = v;
+						max_e = energy;
+					}
+				}
+				//分裂,并且把其相邻的sphere加入deleted_sphere_i
+				
+				//分裂
+				spheres.push_back(std::make_shared<Sphere>( shringking_ball(max_id),std::vector<int>(),0));
 
+				
+				//加入
+				Eigen::ArrayXi row = spheres_adjacency.row(i);
+				for (int j = 0; j < row(j); j++)
+				{
+					if (row(j) > 0)
+					{
+						deleted_sphere_i.insert(j);
+					}
+				}
+				
+			}
 		}
 	}
 }
