@@ -16,5 +16,5 @@ int main()
 
 	//VMAS_Skeleton ske(mesh, 0.2);
 	VSfast vsf;
-	vsf.init(mesh, 0.2, 1e-2);
+	vsf.init(mesh, 0.2);
 }

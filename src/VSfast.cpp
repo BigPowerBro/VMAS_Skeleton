@@ -1,10 +1,11 @@
 #include<VSfast.h>
 
-void VSfast::init(Mesh mesh, double lambda, double threshold)
+void VSfast::init(Mesh mesh, double lambda)
 {
 	this->mesh = mesh;
 	this->lambda = lambda; 
-	this->threshold = threshold;
+	this->threshold1 = 1e-3;
+	this->threshold2 = 1.0;
 	int count_v = mesh.n_vertices();
 	std::vector<int> init_cluster;
 	point_pos = Eigen::MatrixXd(count_v, 4);
@@ -48,24 +49,51 @@ void VSfast::updata_spheres_s_E()
 	{
 		updata_single_sphere(sphere, 1e-5);
 	}
+
+	std::sort(spheres.begin(), spheres.end(), [](const std::shared_ptr<Sphere>& s1, const std::shared_ptr<Sphere>& s2) {
+		return s1->E > s2->E;  // 按能量降序排序
+		});
 }
 
 void VSfast::updata_spheres_cluster()
 {
 	int n = spheres.size();
 	int m = point_pos.rows();
-	Eigen::MatrixXd Ev(m, n); //用于存储每个点到每个球体的能量
-	  
 
-
+	for (auto sphere_ptr : spheres) sphere_ptr->cluster.clear();
+	
+	for (int i = 0; i < m; i++)
+	{
+		double Evs = LONG_MAX;
+		int s_id = 0;
+		for (int j = 0; j < n; j++)
+		{
+			double Evs_tmp = Qvs(i, spheres[j]->s) + lambda * Dvs(i, spheres[j]->s);
+			if (Evs_tmp < Evs)
+			{
+				Evs = Evs_tmp;
+				s_id = j;
+			}
+		}
+		spheres[s_id]->cluster.push_back(i);
+	}
 }
 
 void VSfast::split_spheres()
 {
+	int n = spheres.size();
+	for (int i = 0; i < n; i++)
+	{
+		if (spheres[i]->E > threshold2)
+		{
+
+		}
+	}
 }
 
 void VSfast::correction_spheres()
 {
+
 }
 
 void VSfast::run()
@@ -137,13 +165,27 @@ void VSfast::cal_ps_as(const std::vector<int>& cluster, Eigen::MatrixXd& ps, Eig
 	}
 }
 
+double VSfast::Dvs(const int v, const Eigen::Vector4d s)
+{
+	Eigen::Vector4d p = point_pos.row(v).transpose();
+	Eigen::Vector4d n = point_n.row(v).transpose();
+	Eigen::Vector4d q = { s.x(),s.y(),s.z(),0 };
+	double r = s.w();
+
+	double dvs = (p - q).norm() - r;
+
+	return point_area(v) * dvs * dvs;
+}
+
 double VSfast::Qvs(const int v, const Eigen::Vector4d s)
 {
-	std::vector<int> single_cluster = { v };
-	Eigen::MatrixXd ps;
-	Eigen::VectorXd as;
-	cal_ps_as(single_cluster, ps, as)
-	return 0.0;
+	Eigen::Matrix4d A;
+	Eigen::Vector4d b;
+	double c;
+
+	cal_QEM_matrix({ v }, A, b, c);
+
+	return 0.5 * s.transpose() * A * s - b.dot(s) + c;
 }
 
 double VSfast::E_SQEM(const Eigen::Matrix4d A, const Eigen::Vector4d b, const double c, const Eigen::Vector4d s)
@@ -219,9 +261,9 @@ void VSfast::updata_single_sphere(std::shared_ptr<Sphere> sphere, const double e
 		s += h * g;
 		
 	}
-	
+
 	sphere->s = s;
-	sphere->E = E_SQEM(A, b, c, s) + lambda * E_euclidean(ps, as, s);
+	sphere->E = (E_SQEM(A, b, c, s) + lambda * E_euclidean(ps, as, s)) / as.sum();
 	
 }
 

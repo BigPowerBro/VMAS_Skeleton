@@ -20,7 +20,7 @@ struct Sphere
 class VSfast
 {
 public:
-	void init(Mesh mesh,double lambda,double threshold);//初始化
+	void init(Mesh mesh,double lambda);//初始化
 	void updata_spheres_s_E();//更新球心和半径
 	void updata_spheres_cluster();//更新球的点的类
 	void split_spheres();//分裂球
@@ -36,6 +36,7 @@ private:
 	// 计算能量的函数
 	void cal_QEM_matrix(const std::vector<int>& cluster, Eigen::Matrix4d& A, Eigen::Vector4d& b, double& c);
 	void cal_ps_as(const std::vector<int>& cluster, Eigen::MatrixXd& ps, Eigen::VectorXd& as);
+	double Dvs(const int v, const Eigen::Vector4d s);
 	double Qvs(const int v, const Eigen::Vector4d s);
 	double E_SQEM(const Eigen::Matrix4d A, const Eigen::Vector4d b, const double c, const Eigen::Vector4d s);
 	double E_euclidean(const Eigen::MatrixXd ps, const Eigen::VectorXd as, const Eigen::Vector4d s);
@@ -56,7 +57,8 @@ private:
 	std::vector<std::shared_ptr<Sphere>> spheres;//球的指针
 	Eigen::MatrixXi spheres_adjacency;//球的邻接关系
 	double lambda;//系数
-	double threshold;//能量阈值
+	double threshold1; //能量阈值1 用于停止能量优化
+	double threshold2; //能量阈值2 用于分裂
 	
 private:
 	Eigen::SparseMatrix<int> point_adjacency;
