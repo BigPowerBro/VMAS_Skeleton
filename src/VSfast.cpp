@@ -5,7 +5,7 @@ void VSfast::init(Mesh mesh, double lambda, int max_sphere_num)
 	this->mesh = mesh;
 	this->lambda = lambda; 
 	this->threshold1 = 1e-3;
-	this->threshold2 = 1.0;
+	this->threshold2 = 0.;
 	this->max_sphere_num = max_sphere_num;
 
 	int count_v = mesh.n_vertices();
@@ -42,7 +42,8 @@ void VSfast::init(Mesh mesh, double lambda, int max_sphere_num)
 
 	Eigen::Vector4d init_s = {1,1,1,1};
 	std::shared_ptr<Sphere> s_ptr = std::make_shared<Sphere>(0, init_s, init_cluster, 0);
-	updata_single_sphere(s_ptr, 1e-5);
+	spheres.push_back(s_ptr);
+	update_single_sphere(s_ptr, 1e-5);
 }
 
 void VSfast::update_spheres_s_E()
@@ -85,12 +86,13 @@ void VSfast::split_spheres()
 {
 	int n = spheres.size();
 	cal_spheres_adjacency();
+
 	std::set<int> deleted_sphere_i;
 	for (int i = 0; i < n; i++)
 	{
 		if (spheres[i]->E > threshold2)
 		{
-			if (deleted_sphere_i.find(i) != deleted_sphere_i.end())
+			if (deleted_sphere_i.find(i) == deleted_sphere_i.end())
 			{
 				int max_id = spheres[i]->cluster[0];
 				double max_e = 0;
@@ -107,7 +109,6 @@ void VSfast::split_spheres()
 				
 				//∑÷¡—
 				spheres.push_back(std::make_shared<Sphere>(spheres.size(), shringking_ball(max_id), std::vector<int>(), 0));
-
 				
 				//º”»Î
 				Eigen::ArrayXi row = spheres_adjacency.row(i);
@@ -122,6 +123,7 @@ void VSfast::split_spheres()
 			}
 		}
 	}
+	std::cout << "spheres.size(): " << spheres.size() << std::endl;
 }
 
 void VSfast::correction_spheres()
@@ -161,10 +163,7 @@ void VSfast::cal_spheres_adjacency()
 		spheres_adjacency_map[i] = std::set<int>();
 		i++;
 	}
-	if (i == 1)
-	{
-		return;
-	}
+
 	spheres_adjacency = Eigen::MatrixXi(i, i);
 	spheres_adjacency.setZero();
 	for (auto e : mesh.edges())
@@ -202,7 +201,6 @@ void VSfast::cal_QEM_matrix(const std::vector<int>& cluster, Eigen::Matrix4d& A,
 			c += area / 3.0 * n.dot(p) * n.dot(p);
 		}
 	}
-	std::cout << "c: " << c << std::endl;
 }
 
 void VSfast::cal_ps_as(const std::vector<int>& cluster, Eigen::MatrixXd& ps, Eigen::VectorXd& as)
@@ -360,6 +358,7 @@ Eigen::Vector4d VSfast::shringking_ball(const int v)
 	double tol = 1e-8;
 	while (abs(r - r_new) > tol)
 	{
+		r = r_new;
 		c = p - r * n;
 		q = cal_closest_point(c);
 		r_new = compute_radius(p, q, n);
@@ -383,4 +382,22 @@ double VSfast::compute_radius(const Eigen::Vector4d p, const Eigen::Vector4d q, 
 	float d = (p - q).norm();
 	float theta = std::acos(n.dot(p - q) / d);
 	return d / std::cos(theta) / 2.0;
+}
+
+void VSfast::write_color_obj(std::string fname)
+{
+	std::ofstream out(fname);
+	std::vector<int> vid_to_color(point_n.rows());
+	int i = 0;
+	for (auto sph : spheres)
+	{
+		sph->id = i;
+		for (auto v : sph->cluster)
+		{
+			vid_to_color[v] = i;
+		}
+		spheres_adjacency_map[i] = std::set<int>();
+		i++;
+	}
+
 }

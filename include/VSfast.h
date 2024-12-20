@@ -7,6 +7,8 @@
 #include<map>
 #include<set>
 #include <Eigen/Sparse>
+#include<string>
+#include<fstream>
 struct Sphere
 {
 	int id;
@@ -24,6 +26,7 @@ public:
 	void update_spheres_s_E();//更新球心和半径
 	void update_spheres_cluster();//更新球的点的类
 	void split_spheres();//分裂球
+	
 
 	void correction_spheres();//将出去模型的球缩小到模型内部
 
@@ -48,6 +51,9 @@ private:
 	Eigen::Vector4d shringking_ball(const int v);
 	Eigen::Vector4d cal_closest_point(const Eigen::Vector4d c);
 	double compute_radius(const Eigen::Vector4d p, const Eigen::Vector4d q, const Eigen::Vector4d n);
+
+	// test
+	void write_color_obj(std::string fname);
 
 private:
 	Mesh mesh;
