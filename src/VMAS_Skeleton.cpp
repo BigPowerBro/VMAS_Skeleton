@@ -17,7 +17,7 @@ void VMAS_Skeleton::Init(Mesh& mesh, float lambda)
     }
 
     // 初始球体
-    Sphere init_sphere = { {1,0,0},0 };
+    Sphere init_sphere = { {1,1,1},1 };
     init_sphere = update_single_sphere(init_cluster, init_sphere, this->lambda, 1e-5);
 
     // 初始能量
@@ -165,7 +165,6 @@ Sphere VMAS_Skeleton::update_single_sphere(const std::vector<int>& cluster, cons
             k(ii) += area / 3.0;
         }
     }
-    //std::cout << A << std::endl;
     // 
     // 2.梯度下降法 迭代求解
 
@@ -174,7 +173,8 @@ Sphere VMAS_Skeleton::update_single_sphere(const std::vector<int>& cluster, cons
     for (int ii = 0; ii < LOOP; ii++)
     {
         //2.1 计算梯度g和下降方向dk=-g
-        Eigen::Vector4f g = A * s - b;
+        Eigen::Vector4f g0 = A * s - b;
+        Eigen::Vector4f g1 = Eigen::Vector4f::Zero();
         
         for (int i = 0; i < n; i++)
         {
@@ -188,11 +188,16 @@ Sphere VMAS_Skeleton::update_single_sphere(const std::vector<int>& cluster, cons
             float dpq = vpq.norm();
             if (dpq == 0) dpq = 1;
             Eigen::Vector4f gi = { vpq.x(), vpq.y(), vpq.z(), -dpq };
-            g += 2 * lambda * sign(d) / dpq * gi;
+            g1 += 2 * lambda * d * k(i) / dpq * gi;
+            if (i == 0)
+            {
+
+                gi = 1.0 / dpq * gi;
+                gi = d * k(i) * gi;
+            }
         }
         
-        g.normalized();
-        Eigen::Vector4f dk = -g;
+        Eigen::Vector4f dk = -g0 - g1;
         
 
         //3.4 线搜索步长 黄金分割法
@@ -226,9 +231,10 @@ Sphere VMAS_Skeleton::update_single_sphere(const std::vector<int>& cluster, cons
         }
 
         float h = (a + b) / 2.0;
-        std::cout << "下降方向dk:" << dk.x() << " " << dk.y() << " " << dk.z() << std::endl;
-        std::cout << "能量E：" << E << std::endl;
+        std::cout << "下降方向dk:" << dk.x() << " " << dk.y() << " " << dk.z() << " " << dk.w() << std::endl;
+        std::cout << "能量E1：" << E_SQEM(cluster,sphere) << "能量E2：" << E_euclidean(cluster, sphere) << std::endl;
         std::cout << "球体S:" << sphere.q.x() << " " << sphere.q.y() << " " << sphere.q.z() << " " << sphere.r << std::endl;
+
         //float h = 0.1;
         if (h*dk.norm() < eps) break;
         if (func_E(h) > E) break;
