@@ -6,7 +6,7 @@
 int main()
 {
 	std::string fpath = "../data/";
-	std::string filename = fpath+ std::string("bunny.obj");
+	std::string filename = fpath+ std::string("hourse.obj");
 
 	Mesh mesh;
 	if (!OpenMesh::IO::read_mesh(mesh, filename))
@@ -16,7 +16,7 @@ int main()
 
 	//VMAS_Skeleton ske(mesh, 0.2);
 	VSfast vsf;
-	vsf.init(mesh, 0.2, 10);
+	vsf.init(mesh, 0.2, 40);
 	vsf.run();
-	vsf.write_color_obj(fpath+std::string("test.obj"));
+	vsf.write_color_obj(fpath+std::string("test"));
 }

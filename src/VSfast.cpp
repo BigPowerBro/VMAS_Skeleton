@@ -112,7 +112,7 @@ void VSfast::split_spheres()
 				
 				//加入
 				Eigen::ArrayXi row = spheres_adjacency.row(i);
-				for (int j = 0; j < row(j); j++)
+				for (int j = 0; j < row.rows(); j++)
 				{
 					if (row(j) > 0)
 					{
@@ -137,14 +137,16 @@ void VSfast::run()
 	{
 		split_spheres();
 
-		double E;
+		double E=0;
+		double E_new = -10000;
 		do {
 			update_spheres_cluster();
 			update_spheres_s_E();
-
+			E_new = E;
 			E = 0;
 			for (auto sphere : spheres) E = std::max(sphere->E, E);
-		} while (E < this->threshold1);
+			std::cout << "Emax " << E << std::endl;
+		} while (abs(E-E_new) > this->threshold1);
 	}
 }
 
@@ -303,10 +305,10 @@ void VSfast::update_single_sphere(std::shared_ptr<Sphere> sphere, const double e
 
 		double h = line_search(0, 1, func_E);
 
-		std::cout << "s: " << s.x() << " " << s.y() << " " << s.z() << " " << s.w() << std::endl;
-		std::cout << "g: " << g.x() << " " << g.y() << " " << g.z() << " " << g.w() << std::endl;
-		std::cout << "E1: " << E_SQEM(A, b, c, s) << "E2: " << E_euclidean(ps, as, s) << std::endl;
-		std::cout << "h: " << h << std::endl;
+		//std::cout << "s: " << s.x() << " " << s.y() << " " << s.z() << " " << s.w() << std::endl;
+		//std::cout << "g: " << g.x() << " " << g.y() << " " << g.z() << " " << g.w() << std::endl;
+		//std::cout << "E1: " << E_SQEM(A, b, c, s) << "E2: " << E_euclidean(ps, as, s) << std::endl;
+		//std::cout << "h: " << h << std::endl;
 
 		// 2.3 计算新的s
 		if (h * g.norm() < eps) break;
@@ -386,7 +388,9 @@ double VSfast::compute_radius(const Eigen::Vector4d p, const Eigen::Vector4d q, 
 
 void VSfast::write_color_obj(std::string fname)
 {
-	std::ofstream out(fname);
+	std::ofstream out(fname+std::string(".obj"));
+	std::ofstream outply(fname + std::string(".ply"));
+
 	std::vector<int> vid_to_color(point_n.rows());
 	std::vector<Eigen::Vector3d> color_bar;
 	int i = 0;
@@ -418,5 +422,40 @@ void VSfast::write_color_obj(std::string fname)
 			out << v.idx()+1 << " ";
 		}
 		out << std::endl;
+	}
+	cal_spheres_adjacency();
+	int v_size = spheres.size();
+	std::vector<std::pair<int, int>> edges;
+	for (int i = 0; i < v_size; i++)
+	{
+		for (auto j: spheres_adjacency_map[i])
+		{
+			if (j > i)
+			{
+				edges.push_back(std::pair<int, int>(i, j) );
+			}
+		}
+	}
+	outply << "ply " << std::endl;
+	outply << "format ascii 1.0 " << std::endl;
+	outply << "element vertex " <<v_size<<" " << std::endl;
+	outply << "property float x " << std::endl;
+	outply << "property float y " << std::endl;
+	outply << "property float z " << std::endl;
+	outply << "element edge "<< edges.size()<<" " << std::endl;
+	//outply << "property list uchar int vertex_indices " << std::endl;
+	
+		
+	outply << "property int vertex1 " << std::endl;
+	outply << "property int vertex2 " << std::endl;
+	outply << "end_header " << std::endl;
+
+	for (int i = 0; i < v_size; i++)
+	{
+		outply << spheres[i]->s[0] << " " << spheres[i]->s[1] << " " << spheres[i]->s[2] << std::endl;
+	}
+	for (int i = 0; i < edges.size(); i++)
+	{
+		outply <<edges[i].first << " " << edges[i].second << std::endl;
 	}
 }
