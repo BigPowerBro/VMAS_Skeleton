@@ -30,8 +30,6 @@ void VSfast::init(Mesh mesh, double lambda, double threshold)
 	
 	//添加邻接矩阵
 
-
-
 	Eigen::Vector4d init_s = {1,1,1,1};
 	std::shared_ptr<Sphere> s_ptr = std::make_shared<Sphere>(init_s, init_cluster, 0);
 	updata_single_sphere(s_ptr, 1e-5);
@@ -39,10 +37,16 @@ void VSfast::init(Mesh mesh, double lambda, double threshold)
 
 void VSfast::updata_spheres_s_E()
 {
+	for (auto sphere : this->spheres)
+	{
+		updata_single_sphere(sphere, 1e-5);
+	}
 }
 
 void VSfast::updata_spheres_cluster()
 {
+	int m = spheres.size();
+
 }
 
 void VSfast::split_spheres()
@@ -204,6 +208,7 @@ double VSfast::line_search(double a, double b, std::function<double(double)> fun
 
 Eigen::Vector4d VSfast::shringking_ball(const int v)
 {
+	
 	//1. 初始化
 	Eigen::Vector4d p = point_pos.row(v).transpose();
 	Eigen::Vector4d n = point_n.row(v).transpose();
@@ -221,7 +226,8 @@ Eigen::Vector4d VSfast::shringking_ball(const int v)
 		r_new = compute_radius(p, q, n);
 	}
 
-	return { c,r };
+	return Eigen::Vector4d(c.x(), c.y(), c.z(), r);
+	
 }
 
 Eigen::Vector4d VSfast::cal_closest_point(const Eigen::Vector4d c)
