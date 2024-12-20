@@ -70,7 +70,7 @@ void VSfast::cal_QEM_matrix(const std::vector<int>& cluster, Eigen::Matrix4d& A,
 	for (int v : cluster)
 	{
 		auto vh = mesh.vertex_handle(v);
-		auto p = point_pos.row(cluster[v]).transpose();
+		auto p = point_pos.row(v).transpose();
 		for (auto f = mesh.vf_begin(vh); f != mesh.vf_end(vh); f++)
 		{
 			auto fn = mesh.calc_face_normal(*f);
@@ -90,10 +90,12 @@ void VSfast::cal_ps_as(const std::vector<int>& cluster, Eigen::MatrixXd& ps, Eig
 	int m = cluster.size();
 	ps.resize(m, 4);
 	as.resize(m);
-	for (int i = 0; i < m; i++)
+	int i = 0;
+	for (auto v:cluster)
 	{
-		ps.row(i) = point_pos.row(cluster[i]);
-		as(i) = point_area(cluster[i]);
+		ps.row(i) = point_pos.row(v);
+		as(i) = point_area(v);
+		i++;
 	}
 }
 
@@ -198,4 +200,42 @@ double VSfast::line_search(double a, double b, std::function<double(double)> fun
 		d = a + (b - a) / PHI;
 	}
 	return (a + b) / 2.0;
+}
+
+Eigen::Vector4d VSfast::shringking_ball(const int v)
+{
+	//1. 初始化
+	Eigen::Vector4d p = point_pos.row(v).transpose();
+	Eigen::Vector4d n = point_n.row(v).transpose();
+	Eigen::Vector4d q = point_pos.row((v + 1) % point_pos.rows()).transpose();
+	double r = compute_radius(p, q, n);
+
+	// 2.迭代
+	double r_new = 0.0;
+	Eigen::Vector4d c; //圆心
+	double tol = 1e-8;
+	while (abs(r - r_new) > tol)
+	{
+		c = p - r * n;
+		q = cal_closest_point(c);
+		r_new = compute_radius(p, q, n);
+	}
+
+	return { c,r };
+}
+
+Eigen::Vector4d VSfast::cal_closest_point(const Eigen::Vector4d c)
+{
+	Eigen::MatrixXd vpc = this->point_pos.rowwise() - c.transpose();
+	Eigen::VectorXd ds = vpc.rowwise().norm();
+	int min_index = 0;
+	ds.minCoeff(&min_index);
+	return point_pos.row(min_index).transpose();
+}
+
+double VSfast::compute_radius(const Eigen::Vector4d p, const Eigen::Vector4d q, const Eigen::Vector4d n)
+{
+	float d = (p - q).norm();
+	float theta = std::acos(n.dot(p - q) / d);
+	return d / std::cos(theta) / 2.0;
 }

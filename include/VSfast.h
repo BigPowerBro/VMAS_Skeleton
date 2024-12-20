@@ -31,14 +31,19 @@ public:
 	void cal_spheres_adjacency();//计算球的邻接关系
 
 private:
+	// 计算能量的函数
 	void cal_QEM_matrix(const std::vector<int>& cluster, Eigen::Matrix4d& A, Eigen::Vector4d& b, double& c);
 	void cal_ps_as(const std::vector<int>& cluster, Eigen::MatrixXd& ps, Eigen::VectorXd& as);
 	double E_SQEM(const Eigen::Matrix4d A, const Eigen::Vector4d b, const double c, const Eigen::Vector4d s);
 	double E_euclidean(const Eigen::MatrixXd ps, const Eigen::VectorXd as, const Eigen::Vector4d s);
-
+	//更新一个球体的位置和半径 以及 能量
 	void updata_single_sphere(std::shared_ptr<Sphere> sphere, const double eps);
-
-	double line_search(double a, double b, std::function<double(double)> func);
+	double line_search(double a, double b, std::function<double(double)> func);  
+	
+	/// 收缩球算法
+	Eigen::Vector4d shringking_ball(const int v);
+	Eigen::Vector4d cal_closest_point(const Eigen::Vector4d c);
+	double compute_radius(const Eigen::Vector4d p, const Eigen::Vector4d q, const Eigen::Vector4d n);
 
 private:
 	Mesh mesh;
