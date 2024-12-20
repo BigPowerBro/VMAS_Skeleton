@@ -126,6 +126,11 @@ void VSfast::split_spheres()
 	std::cout << "spheres.size(): " << spheres.size() << std::endl;
 }
 
+void VSfast::cal_ske_mesh()
+{
+
+}
+
 void VSfast::correction_spheres()
 {
 

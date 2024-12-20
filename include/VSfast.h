@@ -26,6 +26,7 @@ public:
 	void update_spheres_s_E();//更新球心和半径
 	void update_spheres_cluster();//更新球的点的类
 	void split_spheres();//分裂球
+	void cal_ske_mesh(); //计算骨架三角网格
 	
 
 	void correction_spheres();//将出去模型的球缩小到模型内部
@@ -57,6 +58,7 @@ private:
 
 private:
 	Mesh mesh;
+	Mesh ske_mesh;
 	Eigen::MatrixXd point_pos; // n*4的向量 w=0
 	Eigen::MatrixXd point_n;// n*4的法向量,w=1
 	Eigen::VectorXd point_area;//n*1每个点周围三角形的三分之一面积求和
