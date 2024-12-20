@@ -133,6 +133,7 @@ void VSfast::run()
 
 void VSfast::cal_spheres_adjacency()
 {
+	spheres_adjacency_map.clear();
 	std::vector<int> vid_to_color(point_n.rows());
 	int i = 0; 
 	for (auto sph : spheres)
@@ -142,7 +143,12 @@ void VSfast::cal_spheres_adjacency()
 		{
 			vid_to_color[v] = i;
 		}
+		spheres_adjacency_map[i] = std::set<int>();
 		i++;
+	}
+	if (i == 1)
+	{
+		return;
 	}
 	spheres_adjacency = Eigen::MatrixXi(i, i);
 	spheres_adjacency.setZero();
@@ -153,8 +159,10 @@ void VSfast::cal_spheres_adjacency()
 		if (vid_to_color[v0id] != vid_to_color[v1id])
 		{
 			spheres_adjacency(vid_to_color[v0id], vid_to_color[v1id]) = 1;
-
 			spheres_adjacency(vid_to_color[v1id], vid_to_color[v0id]) = 1;
+
+			spheres_adjacency_map[vid_to_color[v0id]].insert(vid_to_color[v1id]);
+			spheres_adjacency_map[vid_to_color[v1id]].insert(vid_to_color[v0id]);
 		}
 	}
 }

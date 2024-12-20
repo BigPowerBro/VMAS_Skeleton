@@ -55,7 +55,8 @@ private:
 	Eigen::MatrixXd point_n;// n*4的法向量,w=1
 	Eigen::VectorXd point_area;//n*1每个点周围三角形的三分之一面积求和
 	std::vector<std::shared_ptr<Sphere>> spheres;//球的指针
-	Eigen::MatrixXi spheres_adjacency;//球的邻接关系
+	Eigen::MatrixXi spheres_adjacency;//球的邻接关系,即将废弃
+	std::map<int,std::set<int>> spheres_adjacency_map;//球的邻接关系,用map表示
 	double lambda;//系数
 	double threshold1; //能量阈值1 用于停止能量优化
 	double threshold2; //能量阈值2 用于分裂
