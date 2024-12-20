@@ -30,7 +30,7 @@ void VSfast::init(Mesh mesh, double lambda, double threshold)
 	
 	//ÃÌº”¡⁄Ω”æÿ’Û
 
-	point_adjacency = Eigen::SparseMatrix<double>(count_v, count_v);
+	point_adjacency = Eigen::SparseMatrix<int>(count_v, count_v);
 	for (auto e : mesh.edges())
 	{
 		point_adjacency.insert(e.v0().idx(), e.v1().idx()) = 1;
@@ -70,7 +70,30 @@ void VSfast::run()
 
 void VSfast::cal_spheres_adjacency()
 {
+	std::vector<int> vid_to_color(point_n.rows());
+	int i = 0; 
+	for (auto sph : spheres)
+	{
+		sph->id = i;
+		for (auto v : sph->cluster)
+		{
+			vid_to_color[v] = i;
+		}
+		i++;
+	}
+	spheres_adjacency = Eigen::MatrixXi(i, i);
+	spheres_adjacency.setZero();
+	for (auto e : mesh.edges())
+	{
+		int v0id = e.v0().idx();
+		int v1id = e.v1().idx();
+		if (vid_to_color[v0id] != vid_to_color[v1id])
+		{
+			spheres_adjacency(vid_to_color[v0id], vid_to_color[v1id]) = 1;
 
+			spheres_adjacency(vid_to_color[v1id], vid_to_color[v0id]) = 1;
+		}
+	}
 }
 
 void VSfast::cal_QEM_matrix(const std::vector<int>& cluster, Eigen::Matrix4d& A, Eigen::Vector4d& b, double& c)

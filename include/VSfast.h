@@ -9,6 +9,7 @@
 #include <Eigen/Sparse>
 struct Sphere
 {
+	int id;
 	Eigen::Vector4d s;//球心+半径
 	std::vector<int> cluster;//球的点的类
 	double E;//能量
@@ -57,7 +58,7 @@ private:
 	double threshold;//能量阈值
 	
 private:
-	Eigen::SparseMatrix<double> point_adjacency;
+	Eigen::SparseMatrix<int> point_adjacency;
 };
 
 
