@@ -1,11 +1,13 @@
 #include<VSfast.h>
 
-void VSfast::init(Mesh mesh, double lambda)
+void VSfast::init(Mesh mesh, double lambda, int max_sphere_num)
 {
 	this->mesh = mesh;
 	this->lambda = lambda; 
 	this->threshold1 = 1e-3;
 	this->threshold2 = 1.0;
+	this->max_sphere_num = max_sphere_num;
+
 	int count_v = mesh.n_vertices();
 	std::vector<int> init_cluster;
 	point_pos = Eigen::MatrixXd(count_v, 4);
@@ -39,15 +41,15 @@ void VSfast::init(Mesh mesh, double lambda)
 	}
 
 	Eigen::Vector4d init_s = {1,1,1,1};
-	std::shared_ptr<Sphere> s_ptr = std::make_shared<Sphere>(init_s, init_cluster, 0);
+	std::shared_ptr<Sphere> s_ptr = std::make_shared<Sphere>(0, init_s, init_cluster, 0);
 	updata_single_sphere(s_ptr, 1e-5);
 }
 
-void VSfast::updata_spheres_s_E()
+void VSfast::update_spheres_s_E()
 {
 	for (auto sphere : this->spheres)
 	{
-		updata_single_sphere(sphere, 1e-5);
+		update_single_sphere(sphere, 1e-5);
 	}
 
 	std::sort(spheres.begin(), spheres.end(), [](const std::shared_ptr<Sphere>& s1, const std::shared_ptr<Sphere>& s2) {
@@ -55,7 +57,7 @@ void VSfast::updata_spheres_s_E()
 		});
 }
 
-void VSfast::updata_spheres_cluster()
+void VSfast::update_spheres_cluster()
 {
 	int n = spheres.size();
 	int m = point_pos.rows();
@@ -104,7 +106,7 @@ void VSfast::split_spheres()
 				//分裂,并且把其相邻的sphere加入deleted_sphere_i
 				
 				//分裂
-				spheres.push_back(std::make_shared<Sphere>( shringking_ball(max_id),std::vector<int>(),0));
+				spheres.push_back(std::make_shared<Sphere>(spheres.size(), shringking_ball(max_id), std::vector<int>(), 0));
 
 				
 				//加入
@@ -129,6 +131,19 @@ void VSfast::correction_spheres()
 
 void VSfast::run()
 {
+	while (spheres.size() < max_sphere_num) // 当球的个数大于max_sphere_num时 结束
+	{
+		split_spheres();
+
+		double E;
+		do {
+			update_spheres_cluster();
+			update_spheres_s_E();
+
+			E = 0;
+			for (auto sphere : spheres) E = std::max(sphere->E, E);
+		} while (E < this->threshold1);
+	}
 }
 
 void VSfast::cal_spheres_adjacency()
@@ -246,7 +261,7 @@ double VSfast::E_euclidean(const Eigen::MatrixXd ps,const Eigen::VectorXd as, co
 	return d.sum();
 }
 
-void VSfast::updata_single_sphere(std::shared_ptr<Sphere> sphere, const double eps)
+void VSfast::update_single_sphere(std::shared_ptr<Sphere> sphere, const double eps)
 {
 	
 	// 1.计算 A b 以及 ps as

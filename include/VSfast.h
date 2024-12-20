@@ -14,15 +14,15 @@ struct Sphere
 	std::vector<int> cluster;//球的点的类
 	double E;//能量
 
-	Sphere(Eigen::Vector4d s0, std::vector<int> cluster0, double E0) : s(s0), cluster(cluster0), E(E0) {};
+	Sphere(int id0, Eigen::Vector4d s0, std::vector<int> cluster0, double E0) : id(id0), s(s0), cluster(cluster0), E(E0) {};
 };
 
 class VSfast
 {
 public:
-	void init(Mesh mesh,double lambda);//初始化
-	void updata_spheres_s_E();//更新球心和半径
-	void updata_spheres_cluster();//更新球的点的类
+	void init(Mesh mesh,double lambda, int max_sphere_ball);//初始化
+	void update_spheres_s_E();//更新球心和半径
+	void update_spheres_cluster();//更新球的点的类
 	void split_spheres();//分裂球
 
 	void correction_spheres();//将出去模型的球缩小到模型内部
@@ -41,7 +41,7 @@ private:
 	double E_SQEM(const Eigen::Matrix4d A, const Eigen::Vector4d b, const double c, const Eigen::Vector4d s);
 	double E_euclidean(const Eigen::MatrixXd ps, const Eigen::VectorXd as, const Eigen::Vector4d s);
 	//更新一个球体的位置和半径 以及 能量
-	void updata_single_sphere(std::shared_ptr<Sphere> sphere, const double eps);
+	void update_single_sphere(std::shared_ptr<Sphere> sphere, const double eps);
 	double line_search(double a, double b, std::function<double(double)> func);  
 	
 	/// 收缩球算法
@@ -60,6 +60,7 @@ private:
 	double lambda;//系数
 	double threshold1; //能量阈值1 用于停止能量优化
 	double threshold2; //能量阈值2 用于分裂
+	int max_sphere_num;  // 最终要多少个球
 	
 private:
 	Eigen::SparseMatrix<int> point_adjacency;
@@ -70,4 +71,4 @@ private:
 
 
 
-#endif // !VSFAST_H
+#endif 
