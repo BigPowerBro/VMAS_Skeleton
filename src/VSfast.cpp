@@ -52,7 +52,11 @@ void VSfast::updata_spheres_s_E()
 
 void VSfast::updata_spheres_cluster()
 {
-	int m = spheres.size();
+	int n = spheres.size();
+	int m = point_pos.rows();
+	Eigen::MatrixXd Ev(m, n); //用于存储每个点到每个球体的能量
+	  
+
 
 }
 
@@ -108,6 +112,15 @@ void VSfast::cal_ps_as(const std::vector<int>& cluster, Eigen::MatrixXd& ps, Eig
 		as(i) = point_area(v);
 		i++;
 	}
+}
+
+double VSfast::Qvs(const int v, const Eigen::Vector4d s)
+{
+	std::vector<int> single_cluster = { v };
+	Eigen::MatrixXd ps;
+	Eigen::VectorXd as;
+	cal_ps_as(single_cluster, ps, as)
+	return 0.0;
 }
 
 double VSfast::E_SQEM(const Eigen::Matrix4d A, const Eigen::Vector4d b, const double c, const Eigen::Vector4d s)
