@@ -388,6 +388,7 @@ void VSfast::write_color_obj(std::string fname)
 {
 	std::ofstream out(fname);
 	std::vector<int> vid_to_color(point_n.rows());
+	std::vector<Eigen::Vector3d> color_bar;
 	int i = 0;
 	for (auto sph : spheres)
 	{
@@ -400,4 +401,22 @@ void VSfast::write_color_obj(std::string fname)
 		i++;
 	}
 
+	for (int j = 0; j < i; j++)
+	{
+		color_bar.push_back(Eigen::Vector3d(j / double(i), j / double(i), j / double(i)));
+	}
+	for (auto v : mesh.vertices())
+	{
+		auto p = mesh.point(v);
+		out << "v " << p[0] << " " << p[1] << " " << p[2] << " " << color_bar[vid_to_color[v.idx()]].transpose() << std::endl;
+	}
+	for (auto f : mesh.faces())
+	{
+		out << "f ";
+		for (auto v : f.vertices())
+		{
+			out << v.idx()+1 << " ";
+		}
+		out << std::endl;
+	}
 }

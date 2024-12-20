@@ -34,7 +34,7 @@ public:
 
 public:
 	void cal_spheres_adjacency();//计算球的邻接关系
-
+	void write_color_obj(std::string fname);
 private:
 	// 计算能量的函数
 	void cal_QEM_matrix(const std::vector<int>& cluster, Eigen::Matrix4d& A, Eigen::Vector4d& b, double& c);
@@ -53,7 +53,7 @@ private:
 	double compute_radius(const Eigen::Vector4d p, const Eigen::Vector4d q, const Eigen::Vector4d n);
 
 	// test
-	void write_color_obj(std::string fname);
+	
 
 private:
 	Mesh mesh;

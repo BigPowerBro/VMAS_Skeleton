@@ -18,4 +18,5 @@ int main()
 	VSfast vsf;
 	vsf.init(mesh, 0.2, 10);
 	vsf.run();
+	vsf.write_color_obj(fpath+std::string("test.obj"));
 }
