@@ -452,6 +452,27 @@ Eigen::Vector4d VSfast::shringking_ball(const int v)
 	
 }
 
+Eigen::Vector4d VSfast::shringking_ball(const int v, const Eigen::Vector4d n)
+{
+	//1. 初始化
+	Eigen::Vector4d p = point_pos.row(v).transpose();
+	Eigen::Vector4d q = point_pos.row((v + 1) % point_pos.rows()).transpose();
+	double r = compute_radius(p, q, n);
+
+	// 2.迭代
+	double r_new = 0.0;
+	Eigen::Vector4d c; //圆心
+	double tol = 1e-8;
+	while (abs(r - r_new) > tol)
+	{
+		r = r_new;
+		c = p - r * n;
+		q = cal_closest_point(c);
+		r_new = compute_radius(p, q, n);
+	}
+	return Eigen::Vector4d(c.x(), c.y(), c.z(), r);
+}
+
 Eigen::Vector4d VSfast::cal_closest_point(const Eigen::Vector4d c)
 {
 	Eigen::MatrixXd vpc = this->point_pos.rowwise() - c.transpose();
