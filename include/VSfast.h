@@ -5,6 +5,7 @@
 #include <MeshDef.h>
 #include<iostream>
 #include<map>
+#include<set>
 struct Sphere
 {
 	Eigen::Vector4d s;//球心+半径
@@ -48,7 +49,7 @@ private:
 	Eigen::MatrixXi spheres_adjacency;//球的邻接关系
 	double lambda;//系数
 	double threshold;//能量阈值
-
+	
 private:
 };
 

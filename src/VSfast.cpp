@@ -28,6 +28,10 @@ void VSfast::init(Mesh mesh, double lambda, double threshold)
 		init_cluster.push_back(v.idx());
 	}
 	
+	//Ìí¼ÓÁÚ½Ó¾ØÕó
+
+
+
 	Eigen::Vector4d init_s = {1,1,1,1};
 	std::shared_ptr<Sphere> s_ptr = std::make_shared<Sphere>(init_s, init_cluster, 0);
 	updata_single_sphere(s_ptr, 1e-5);
@@ -55,6 +59,7 @@ void VSfast::run()
 
 void VSfast::cal_spheres_adjacency()
 {
+
 }
 
 void VSfast::cal_QEM_matrix(const std::vector<int>& cluster, Eigen::Matrix4d& A, Eigen::Vector4d& b, double& c)
