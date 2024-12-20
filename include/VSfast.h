@@ -51,7 +51,7 @@ private:
 	///  ’Àı«ÚÀ„∑®
 	Eigen::Vector4d shringking_ball(const int v);
 	Eigen::Vector4d shringking_ball(const int v, const Eigen::Vector4d n);
-	Eigen::Vector4d cal_closest_point(const Eigen::Vector4d c);
+	Eigen::Vector4d cal_closest_point(const Eigen::Vector4d c, int* index=nullptr);
 	double compute_radius(const Eigen::Vector4d p, const Eigen::Vector4d q, const Eigen::Vector4d n);
 
 	// test
