@@ -6,6 +6,7 @@
 #include<iostream>
 #include<map>
 #include<set>
+#include <Eigen/Sparse>
 struct Sphere
 {
 	Eigen::Vector4d s;//球心+半径
@@ -56,6 +57,7 @@ private:
 	double threshold;//能量阈值
 	
 private:
+	Eigen::SparseMatrix<double> point_adjacency;
 };
 
 

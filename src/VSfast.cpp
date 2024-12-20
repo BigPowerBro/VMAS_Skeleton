@@ -30,7 +30,12 @@ void VSfast::init(Mesh mesh, double lambda, double threshold)
 	
 	//Ìí¼ÓÁÚ½Ó¾ØÕó
 
-
+	point_adjacency = Eigen::SparseMatrix<double>(count_v, count_v);
+	for (auto e : mesh.edges())
+	{
+		point_adjacency.insert(e.v0().idx(), e.v1().idx()) = 1;
+		point_adjacency.insert(e.v1().idx(), e.v0().idx()) = 1;
+	}
 
 	Eigen::Vector4d init_s = {1,1,1,1};
 	std::shared_ptr<Sphere> s_ptr = std::make_shared<Sphere>(init_s, init_cluster, 0);
