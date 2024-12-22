@@ -81,8 +81,7 @@ void VSfast::init(Mesh mesh, double lambda, int max_sphere_num)
 {
 	this->mesh = mesh;
 	this->lambda = lambda; 
-	this->threshold1 = 1e-3;
-	this->threshold2 = 0.;
+	this->threshold = 1e-3;
 	this->max_sphere_num = max_sphere_num;
 
 	int count_v = mesh.n_vertices();
@@ -165,9 +164,10 @@ void VSfast::split_spheres()
 	cal_spheres_adjacency();
 
 	std::set<int> deleted_sphere_i;
+	double threshold = spheres[n / 2]->E;
 	for (int i = 0; i < n; i++)
 	{
-		if (spheres[i]->E > threshold2)
+		if (spheres[i]->E >= threshold)
 		{
 			if (deleted_sphere_i.find(i) == deleted_sphere_i.end())
 			{
@@ -210,15 +210,29 @@ void VSfast::cal_ske_mesh()
 
 void VSfast::correction_spheres()
 {
+	/*
 	for (auto sphere : spheres)
 	{
 		int index = 0;
 		Eigen::Vector4d q(sphere->s.x(), sphere->s.y(), sphere->s.z(), 0);
-		Eigen::Vector4d p = cal_closest_point(q, &index);
-		Eigen::Vector4d n = (q - p).normalized();
+		Eigen::Vector4d p = cal_closest_point(q, -1, &index);
+		Eigen::Vector4d n = (p - q).normalized();
 		auto s = shringking_ball(index, n);
 		sphere->s = s;
 	}
+	*/
+	
+	for (int i=0;i<spheres.size();i++)
+	{
+		int v_p;
+		auto sphere = spheres[i];
+		Eigen::Vector4d q(sphere->s.x(), sphere->s.y(), sphere->s.z(), 0);
+		Eigen::Vector4d p = cal_closest_point(q, -1, &v_p);
+		Eigen::Vector4d n = point_n.row(v_p).transpose().normalized();
+		auto s = shringking_ball(v_p);
+		sphere->s = s;
+	}
+	
 }
 
 void VSfast::run()
@@ -235,8 +249,8 @@ void VSfast::run()
 			E_new = E;
 			E = 0;
 			for (auto sphere : spheres) E = std::max(sphere->E, E);
-			std::cout << "Emax " << E << std::endl;
-		} while (abs(E-E_new) > this->threshold1);
+			
+		} while (abs(E-E_new) > this->threshold);
 	}
 
 	correction_spheres();
@@ -442,7 +456,7 @@ Eigen::Vector4d VSfast::shringking_ball(const int v)
 	
 	//1. ≥ı ºªØ
 	Eigen::Vector4d p = point_pos.row(v).transpose();
-	Eigen::Vector4d n = point_n.row(v).transpose();
+	Eigen::Vector4d n = point_n.row(v).transpose().normalized();
 	Eigen::Vector4d q = point_pos.row((v + 1) % point_pos.rows()).transpose();
 	double r = compute_radius(p, q, n);
 
@@ -454,10 +468,10 @@ Eigen::Vector4d VSfast::shringking_ball(const int v)
 	{
 		r = r_new;
 		c = p - r * n;
-		q = cal_closest_point(c);
+		q = cal_closest_point(c, v);
 		r_new = compute_radius(p, q, n);
 	}
-
+	std::cout << "r: " << r << std::endl;
 	return Eigen::Vector4d(c.x(), c.y(), c.z(), r);
 	
 }
@@ -477,16 +491,18 @@ Eigen::Vector4d VSfast::shringking_ball(const int v, const Eigen::Vector4d n)
 	{
 		r = r_new;
 		c = p - r * n;
-		q = cal_closest_point(c);
+		q = cal_closest_point(c, v);
 		r_new = compute_radius(p, q, n);
 	}
 	return Eigen::Vector4d(c.x(), c.y(), c.z(), r);
 }
 
-Eigen::Vector4d VSfast::cal_closest_point(const Eigen::Vector4d c, int* index)
+Eigen::Vector4d VSfast::cal_closest_point(const Eigen::Vector4d c, const int v, int* index)
 {
+
 	Eigen::MatrixXd vpc = this->point_pos.rowwise() - c.transpose();
 	Eigen::VectorXd ds = vpc.rowwise().norm();
+	if (v >= 0) ds(v) = LONG_MAX;
 	int min_index = 0;
 	ds.minCoeff(&min_index);
 	if (index != nullptr)*index = min_index;
