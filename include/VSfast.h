@@ -25,6 +25,7 @@ public:
 	void init(Mesh mesh,double lambda, int max_sphere_ball);//初始化
 	void update_spheres_s_E();//更新球心和半径
 	void update_spheres_cluster();//更新球的点的类
+	void update_spheres();
 	void split_spheres();//分裂球
 	void cal_ske_mesh(); //计算骨架三角网格
 	
@@ -51,10 +52,10 @@ private:
 	/// 收缩球算法
 	Eigen::Vector4d shringking_ball(const int v);
 	Eigen::Vector4d shringking_ball(const int v, const Eigen::Vector4d n);
-	Eigen::Vector4d cal_closest_point(const Eigen::Vector4d c, int* index=nullptr);
+	Eigen::Vector4d cal_closest_point(const Eigen::Vector4d c, const int v, int* index=nullptr);
 	double compute_radius(const Eigen::Vector4d p, const Eigen::Vector4d q, const Eigen::Vector4d n);
 
-	// test
+	void delete_out_sphere();
 	
 
 private:
@@ -67,8 +68,7 @@ private:
 	Eigen::MatrixXi spheres_adjacency;//球的邻接关系,即将废弃
 	std::map<int,std::set<int>> spheres_adjacency_map;//球的邻接关系,用map表示
 	double lambda;//系数
-	double threshold1; //能量阈值1 用于停止能量优化
-	double threshold2; //能量阈值2 用于分裂
+	double threshold; //能量阈值1 用于停止能量优化
 	int max_sphere_num;  // 最终要多少个球
 	
 private:

@@ -89,12 +89,14 @@ void VSfast::init(Mesh mesh, double lambda, int max_sphere_num)
 	point_pos = Eigen::MatrixXd(count_v, 4);
 	point_n = Eigen::MatrixXd(count_v, 4);
 	point_area = Eigen::VectorXd(count_v, 1);
+	mesh.request_vertex_normals();
+	mesh.request_vertex_status();
 	for (auto v:mesh.vertices())
 	{
 		auto v_p = mesh.point(v);
 		point_pos.row(v.idx()) = Eigen::Vector4d(v_p[0], v_p[1], v_p[2], 0);
 		auto v_n = mesh.calc_vertex_normal(v);
-		point_n.row(v.idx()) = Eigen::Vector4d(v_n[0], v_n[1], v_n[2],1);
+		point_n.row(v.idx()) = Eigen::Vector4d(v_n[0], v_n[1], v_n[2], 1);
 		//std::cout << point_pos.row(v.idx()) << std::endl;
 		
 		double face_area = 0;
@@ -108,7 +110,6 @@ void VSfast::init(Mesh mesh, double lambda, int max_sphere_num)
 	}
 	
 	//添加邻接矩阵
-
 	point_adjacency = Eigen::SparseMatrix<int>(count_v, count_v);
 	for (auto e : mesh.edges())
 	{
@@ -156,6 +157,21 @@ void VSfast::update_spheres_cluster()
 		}
 		spheres[s_id]->cluster.push_back(i);
 	}
+}
+
+void VSfast::update_spheres()
+{
+	double E = 0;
+	double E_new = -10000;
+	do {
+		update_spheres_cluster();
+		update_spheres_s_E();
+
+		E_new = E;
+		E = 0;
+		for (auto sphere : spheres) E = std::max(sphere->E, E);
+
+	} while (abs(E - E_new) > this->threshold);
 }
 
 void VSfast::split_spheres()
@@ -210,50 +226,28 @@ void VSfast::cal_ske_mesh()
 
 void VSfast::correction_spheres()
 {
-	/*
-	for (auto sphere : spheres)
-	{
-		int index = 0;
-		Eigen::Vector4d q(sphere->s.x(), sphere->s.y(), sphere->s.z(), 0);
-		Eigen::Vector4d p = cal_closest_point(q, -1, &index);
-		Eigen::Vector4d n = (p - q).normalized();
-		auto s = shringking_ball(index, n);
-		sphere->s = s;
-	}
-	*/
-	
-	for (int i=0;i<spheres.size();i++)
-	{
-		int v_p;
-		auto sphere = spheres[i];
-		Eigen::Vector4d q(sphere->s.x(), sphere->s.y(), sphere->s.z(), 0);
-		Eigen::Vector4d p = cal_closest_point(q, -1, &v_p);
-		Eigen::Vector4d n = point_n.row(v_p).transpose().normalized();
-		auto s = shringking_ball(v_p);
-		sphere->s = s;
-	}
-	
+
+	while (spheres.size() > this->max_sphere_num) spheres.erase(spheres.begin());
+	//delete_out_sphere();
+	//update_spheres();
 }
 
 void VSfast::run()
 {
+	
 	while (spheres.size() < max_sphere_num) // 当球的个数大于max_sphere_num时 结束
 	{
 		split_spheres();
-
-		double E = 0;
-		double E_new = -10000;
-		do {
-			update_spheres_cluster();
-			update_spheres_s_E();
-			E_new = E;
-			E = 0;
-			for (auto sphere : spheres) E = std::max(sphere->E, E);
-			
-		} while (abs(E-E_new) > this->threshold);
+		update_spheres();
 	}
-
 	correction_spheres();
+	
+	/*
+	spheres.clear();
+	auto s = shringking_ball(1);
+	spheres.push_back(std::make_shared<Sphere>(0, s, std::vector<int>(), 0));
+	std::cout << "spheres.size():" << spheres.size() << std::endl;
+	*/
 }
 
 void VSfast::cal_spheres_adjacency()
@@ -402,7 +396,7 @@ void VSfast::update_single_sphere(std::shared_ptr<Sphere> sphere, const double e
 
 
 		
-		Eigen::Vector4d g = -1 * (A * s - b + gis.colwise().sum().transpose()).normalized();
+		Eigen::Vector4d g = -1 * (A * s - b + gis.colwise().sum().transpose());
 		// 2.2 线搜索算法
 		auto func_E = [this, A, b, c, ps, as, s, g] (float h) {
 			Eigen::Vector4d s_new = s + h * g;
@@ -456,21 +450,31 @@ Eigen::Vector4d VSfast::shringking_ball(const int v)
 	
 	//1. 初始化
 	Eigen::Vector4d p = point_pos.row(v).transpose();
-	Eigen::Vector4d n = point_n.row(v).transpose().normalized();
-	Eigen::Vector4d q = point_pos.row((v + 1) % point_pos.rows()).transpose();
-	double r = compute_radius(p, q, n);
+	Eigen::Vector4d n = point_n.row(v).transpose(); n(3) = 0;
+	Eigen::Vector4d q;
 
+	double r;
+	for (int i = 0; i < point_pos.size(); i++)
+	{
+		// 需要找到一个r>0
+		if (i == v) continue;
+		q = point_pos.row(i).transpose();
+		r = compute_radius(p, q, n);
+		if (r > 0) break;
+	}
 	// 2.迭代
 	double r_new = 0.0;
 	Eigen::Vector4d c; //圆心
 	double tol = 1e-8;
-	while (abs(r - r_new) > tol)
+	while(true)
 	{
-		r = r_new;
 		c = p - r * n;
 		q = cal_closest_point(c, v);
 		r_new = compute_radius(p, q, n);
+		if (abs(r - r_new) <= tol) break;
+		r = r_new;
 	}
+	
 	std::cout << "r: " << r << std::endl;
 	return Eigen::Vector4d(c.x(), c.y(), c.z(), r);
 	
@@ -511,9 +515,26 @@ Eigen::Vector4d VSfast::cal_closest_point(const Eigen::Vector4d c, const int v, 
 
 double VSfast::compute_radius(const Eigen::Vector4d p, const Eigen::Vector4d q, const Eigen::Vector4d n)
 {
-	float d = (p - q).norm();
-	float theta = std::acos(n.dot(p - q) / d);
-	return d / std::cos(theta) / 2.0;
+	double d = (p - q).norm();
+	return d * d / n.dot(p - q) / 2.0;
+}
+
+void VSfast::delete_out_sphere()
+{
+	std::vector<std::shared_ptr<Sphere>> out_spheres;
+	for (int i = 0; i < spheres.size(); i++)
+	{
+		int v_p;
+		auto sphere = spheres[i];
+		Eigen::Vector4d q(sphere->s.x(), sphere->s.y(), sphere->s.z(), 0);
+		Eigen::Vector4d p = cal_closest_point(q, -1, &v_p);
+		Eigen::Vector4d n = point_n.row(v_p).transpose();
+		if (n.dot(p - q) < 0) out_spheres.push_back(sphere);
+	}
+	for (auto sphere : out_spheres)
+	{
+		spheres.erase(std::remove(spheres.begin(), spheres.end(), sphere), spheres.end());
+	}
 }
 
 void VSfast::write_color_obj(std::string fname)
