@@ -9,6 +9,41 @@
 #include <Eigen/Sparse>
 #include<string>
 #include<fstream>
+#include "../ANN/ANN.h"
+
+class ANNClass
+{
+public:
+	//ANNClass() {};
+	//ANNClass(std::vector<Eigen::Vector3d>& vectorP);
+	ANNClass(Eigen::MatrixXd LPR);
+	Eigen::Vector3d AnnSearch(Eigen::Vector3d vIn);
+	//Eigen::Vector3d AnnSearch(Eigen::Vector3d vIn, int& id);
+
+public:
+	//ann部分
+	//3维向量
+	int dim = 3;
+	//数据个数
+	int	maxPts;
+	//临近点
+	int	k = 1;
+	//搜索到最近的点
+	ANNidxArray nnIdx = new ANNidx[k];
+	//distance
+	ANNdistArray dists = new ANNdist[k]; ;
+	//kd树
+	ANNkd_tree* kdTree;
+	//待搜索点坐标
+	ANNpoint queryPt = annAllocPt(dim);
+	//搜索精度
+	double eps = 0.01;
+	//data
+	ANNpointArray dataPts;
+
+};
+
+
 struct Sphere
 {
 	int id;
@@ -53,7 +88,7 @@ private:
 	Eigen::Vector4d shringking_ball(const int v, const Eigen::Vector4d n);
 	Eigen::Vector4d cal_closest_point(const Eigen::Vector4d c, int* index=nullptr);
 	double compute_radius(const Eigen::Vector4d p, const Eigen::Vector4d q, const Eigen::Vector4d n);
-
+	Eigen::Vector4d shringking_ball_ann(const int v);
 	// test
 	
 
@@ -73,6 +108,7 @@ private:
 	
 private:
 	Eigen::SparseMatrix<int> point_adjacency;
+	std::shared_ptr<ANNClass> annclass;
 };
 
 

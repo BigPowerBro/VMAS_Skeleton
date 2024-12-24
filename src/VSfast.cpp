@@ -90,11 +90,14 @@ void VSfast::init(Mesh mesh, double lambda, int max_sphere_num)
 	point_pos = Eigen::MatrixXd(count_v, 4);
 	point_n = Eigen::MatrixXd(count_v, 4);
 	point_area = Eigen::VectorXd(count_v, 1);
+	mesh.request_vertex_normals();
+	mesh.request_vertex_status();
 	for (auto v:mesh.vertices())
 	{
 		auto v_p = mesh.point(v);
 		point_pos.row(v.idx()) = Eigen::Vector4d(v_p[0], v_p[1], v_p[2], 0);
-		auto v_n = mesh.calc_vertex_normal(v);
+		auto v_n = mesh.calc_normal(v);
+		//std::cout << v_n << std::endl;
 		point_n.row(v.idx()) = Eigen::Vector4d(v_n[0], v_n[1], v_n[2],1);
 		//std::cout << point_pos.row(v.idx()) << std::endl;
 		
@@ -121,6 +124,7 @@ void VSfast::init(Mesh mesh, double lambda, int max_sphere_num)
 	std::shared_ptr<Sphere> s_ptr = std::make_shared<Sphere>(0, init_s, init_cluster, 0);
 	spheres.push_back(s_ptr);
 	update_single_sphere(s_ptr, 1e-5);
+	annclass = std::make_shared<ANNClass>(point_pos.leftCols(3));
 }
 
 void VSfast::update_spheres_s_E()
@@ -185,7 +189,7 @@ void VSfast::split_spheres()
 				//分裂,并且把其相邻的sphere加入deleted_sphere_i
 				
 				//分裂
-				spheres.push_back(std::make_shared<Sphere>(spheres.size(), shringking_ball(max_id), std::vector<int>(), 0));
+				spheres.push_back(std::make_shared<Sphere>(spheres.size(), shringking_ball_ann(max_id), std::vector<int>(), 0));
 				
 				//加入
 				Eigen::ArrayXi row = spheres_adjacency.row(i);
@@ -216,7 +220,7 @@ void VSfast::correction_spheres()
 		Eigen::Vector4d q(sphere->s.x(), sphere->s.y(), sphere->s.z(), 0);
 		Eigen::Vector4d p = cal_closest_point(q, &index);
 		Eigen::Vector4d n = (q - p).normalized();
-		auto s = shringking_ball(index, n);
+		auto s = shringking_ball_ann(index);
 		sphere->s = s;
 	}
 }
@@ -240,6 +244,10 @@ void VSfast::run()
 	}
 
 	correction_spheres();
+	/*auto S = shringking_ball_ann(0);
+	spheres.clear();
+	spheres.push_back(std::make_shared<Sphere>(0, S, std::vector<int>(), 0));*/
+
 }
 
 void VSfast::cal_spheres_adjacency()
@@ -450,12 +458,13 @@ Eigen::Vector4d VSfast::shringking_ball(const int v)
 	double r_new = 0.0;
 	Eigen::Vector4d c; //圆心
 	double tol = 1e-8;
-	while (abs(r - r_new) > tol)
+	while (true)
 	{
-		r = r_new;
 		c = p - r * n;
 		q = cal_closest_point(c);
 		r_new = compute_radius(p, q, n);
+		if (abs(r - r_new) < tol) break;
+		r = r_new;
 	}
 
 	return Eigen::Vector4d(c.x(), c.y(), c.z(), r);
@@ -498,6 +507,32 @@ double VSfast::compute_radius(const Eigen::Vector4d p, const Eigen::Vector4d q, 
 	float d = (p - q).norm();
 	float theta = std::acos(n.dot(p - q) / d);
 	return d / std::cos(theta) / 2.0;
+}
+
+Eigen::Vector4d VSfast::shringking_ball_ann(const int v)
+{
+	Eigen::Vector3d v_p = point_pos.row(v).head<3>();
+	Eigen::Vector3d v_n = point_n.row(v).head<3>();
+	//std::cout << point_n << std::endl;
+	double theta = 0.9;
+	double r = 1.0;
+	Eigen::Vector3d c;
+	while (true)
+	{
+		c = v_p - r * v_n;
+		Eigen::Vector3d miniP= annclass->AnnSearch(c);
+
+		if ((miniP - c).norm() <= r)
+		{
+			r = r * theta;
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	return Eigen::Vector4d(c[0], c[1], c[2], r);
 }
 
 void VSfast::write_color_obj(std::string fname)
@@ -575,4 +610,51 @@ void VSfast::write_color_obj(std::string fname)
 	}
 
 	saveToObj(spheres_s, fname + "shpere.obj");
+}
+
+ANNClass::ANNClass(Eigen::MatrixXd LPR)
+{
+	maxPts = LPR.rows();
+
+	std::cout << "ANN_KDTREE" << " SIZE:" << maxPts << std::endl;
+	dataPts = annAllocPts(maxPts, dim);
+	for (int i = 0; i < maxPts; i++)
+	{
+		for (int j = 0; j < dim; j++)
+		{
+			*(dataPts[i] + j) = LPR(i, j);
+			//std::cout << *(dataPts[i] + j) << " ";
+			//std::cout << Target_points[i]->pos[j] << " ";
+		}
+		//std::cout << std::endl;
+	}
+	kdTree = new ANNkd_tree(					// build search structure
+		dataPts,					// the data points
+		maxPts,						// number of points
+		dim);						// dimension of space
+}
+
+Eigen::Vector3d ANNClass::AnnSearch(Eigen::Vector3d vIn)
+{
+	Eigen::Vector3d& lim_p = vIn;
+	//limit_point(point, lim_p);
+	queryPt[0] = lim_p[0];
+	queryPt[1] = lim_p[1];
+	queryPt[2] = lim_p[2];
+	kdTree->annkSearch(						// search
+		queryPt,						// query point
+		k,								// number of near neighbors
+		nnIdx,							// nearest neighbors (returned)
+		dists,							// distance (returned)
+		eps);							// error bound
+	Eigen::Vector3d sum;
+	sum.setZero();
+
+	for (int i = 0; i < k; i++)
+	{
+		sum[0] += *(dataPts[nnIdx[i]] + 0);
+		sum[1] += *(dataPts[nnIdx[i]] + 1);
+		sum[2] += *(dataPts[nnIdx[i]] + 2);
+	}
+	return  sum / double(k);
 }

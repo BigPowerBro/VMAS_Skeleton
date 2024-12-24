@@ -6,7 +6,7 @@
 int main()
 {
 	std::string fpath = "../data/";
-	std::string filename = fpath+ std::string("plane.obj");
+	std::string filename = fpath+ std::string("ant.obj");
 
 	Mesh mesh;
 	if (!OpenMesh::IO::read_mesh(mesh, filename))
