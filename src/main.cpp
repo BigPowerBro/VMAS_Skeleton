@@ -45,7 +45,7 @@ void normalizeMesh(Mesh& mesh) {
 int main()
 {
 	std::string fpath = "../data/";
-	std::string filename = fpath+ std::string("lamp.obj");
+	std::string filename = fpath+ std::string("bird2.obj");
 
 	Mesh mesh;
 	if (!OpenMesh::IO::read_mesh(mesh, filename))
@@ -57,7 +57,7 @@ int main()
 
 	//VMAS_Skeleton ske(mesh, 0.2);
 	VSfast vsf;
-	vsf.init(mesh, 0.2, 50);
+	vsf.init(mesh, 0.2, 60);
 	vsf.run();
 	vsf.write_color_obj(fpath+std::string("test"));
 }

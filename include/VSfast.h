@@ -31,7 +31,7 @@ public:
 	//搜索到最近的点
 	ANNidxArray nnIdx = new ANNidx[k];
 	//distance
-	ANNdistArray dists = new ANNdist[k]; ;
+	ANNdistArray dists = new ANNdist[k]; 
 	//kd树
 	ANNkd_tree* kdTree;
 	//待搜索点坐标
@@ -62,7 +62,6 @@ public:
 	void update_spheres_cluster();//更新球的点的类
 	void update_spheres();
 	void split_spheres();//分裂球
-	void cal_ske_mesh(); //计算骨架三角网格
 	
 
 	void correction_spheres();//将出去模型的球缩小到模型内部
@@ -85,12 +84,12 @@ private:
 	double line_search(double a, double b, std::function<double(double)> func);  
 	
 	/// 收缩球算法
-	Eigen::Vector4d shringking_ball(const int v);
-	Eigen::Vector4d shringking_ball(const int v, const Eigen::Vector4d n);
-	Eigen::Vector4d cal_closest_point(const Eigen::Vector4d c, const int v, int* index=nullptr);
-	double compute_radius(const Eigen::Vector4d p, const Eigen::Vector4d q, const Eigen::Vector4d n);
+	Eigen::Vector4d shringking_ball(Eigen::Vector4d p, const Eigen::Vector4d n);
+	double compute_radius(const Eigen::Vector3d p, const Eigen::Vector3d q, const Eigen::Vector3d n);
+	Eigen::Vector3d cal_closest_point(const Eigen::Vector3d c, const Eigen::Vector3d p);
 	Eigen::Vector4d shringking_ball_ann(const int v);
-	// test
+	
+
 	
 
 private:
